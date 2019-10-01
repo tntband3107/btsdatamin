@@ -1,0 +1,223 @@
+package com.Kpopfan.btswallpaper;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.Context;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
+import com.bumptech.glide.Glide;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.w3c.dom.Text;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+public class FirstActivity extends AppCompatActivity {
+    private ProgressBar progressBar;
+    private TextView txt_install;
+    private Button button_install;
+    private ImageView img_install;
+    private Context context = this;
+    private int count =0;
+
+    public int getCount() {
+        return count;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
+    }
+
+    public DatabaseImage databaseImage = new DatabaseImage(this);
+    public DatabaseImage getDatabaseImage() {
+        return databaseImage;
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_first);
+        progressBar = findViewById(R.id.progressBar);
+        txt_install = findViewById(R.id.txt_install);
+        button_install= findViewById(R.id.button_install);
+        img_install=findViewById(R.id.img_install);
+        button_install.setVisibility(View.VISIBLE);
+        install();
+        button_install.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                install();
+            }
+        });
+    }
+    public void link(){
+        switch (getCount()){
+            case 0: new Async(this).execute("https://tntband3107.github.io/btsdatamin/json/bts.json"); break;
+            case 1: new Async(this).execute("https://tntband3107.github.io/btsdatamin/json/jin.json"); break;
+            case 2: new Async(this).execute("https://tntband3107.github.io/btsdatamin/json/suga.json"); break;
+            case 3: new Async(this).execute("https://tntband3107.github.io/btsdatamin/json/jhope.json"); break;
+            case 4: new Async(this).execute("https://tntband3107.github.io/btsdatamin/json/rm.json"); break;
+            case 5: new Async(this).execute("https://tntband3107.github.io/btsdatamin/json/jimin.json"); break;
+            case 6: new Async(this).execute("https://tntband3107.github.io/btsdatamin/json/v.json"); break;
+            case 7: new Async(this).execute("https://tntband3107.github.io/btsdatamin/json/jungkook.json"); break;
+            case 8: install_imagebyte(0);break;
+            case 9: install_imagebyte(1);break;
+            case 10: install_imagebyte(2);break;
+            case 11: install_imagebyte(3);break;
+            case 12: install_imagebyte(4);break;
+            case 13: install_imagebyte(5);break;
+            case 14: install_imagebyte(6);break;
+            case 15: install_imagebyte(7);break;
+            default: finish();
+        }
+    }
+    public void install(){
+        link();
+        progressBar.setProgress(getCount());
+        progressBar.setSecondaryProgress(getCount()+1);
+        if (button_install.getVisibility() == View.VISIBLE){
+            progressBar.setVisibility(View.VISIBLE);
+            button_install.setVisibility(View.GONE);
+            Glide.with(this)
+                    .load("https://tntband3107.github.io/btsdatamin/logo.png")
+                    .centerCrop()
+                    .into(img_install);
+
+        }
+        txt_install.setText("Đang cài đặt lần đầu " + String.valueOf(getCount())+"/16" +"\n Quá trình có thể mất chút thời gian ...");
+    }
+    public void error(){
+        progressBar.setVisibility(View.GONE);
+        button_install.setVisibility(View.VISIBLE);
+        txt_install.setText("Không kết nối được với máy chủ\nVui lòng kiểm tra kết nối mạng và thử lại");
+    }
+
+    public void process(String s){
+        progressBar.setVisibility(View.VISIBLE);
+        button_install.setVisibility(View.GONE);
+        txt_install.setText(s);
+    }
+    public void install_imagebyte(int i){
+        databaseImage.setTABLE_NAME(i);
+        Log.e("count_name", String.valueOf(i));
+        new Async_imageByte(this).execute("https://tntband3107.github.io/btsdatamin/tenimageload/"+databaseImage.getTABLE_NAME().substring(+databaseImage.getTABLE_NAME().lastIndexOf("_")+1)+".txt");
+    }
+    public static class Async extends AsyncTask<String,Void,String>{
+        private FirstActivity context;
+        private DatabaseImage databaseImage;
+        public Async(FirstActivity context) {
+            this.context = context;
+        }
+
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .connectTimeout(20, TimeUnit.SECONDS)
+                .writeTimeout(20, TimeUnit.SECONDS)
+                .readTimeout(20, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+        @Override
+        protected String doInBackground(String... strings) {
+            try {
+                Request request = new Request.Builder()
+                        .url(strings[0])
+                        .build();
+                Response response = okHttpClient.newCall(request).execute();
+
+                return response.body().string();
+            } catch (IOException e) {
+//            e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            if (s == null){
+                context.error();
+            }else{
+                try {
+                    databaseImage = context.getDatabaseImage();
+                    databaseImage.setTABLE_NAME(context.getCount());
+                    JSONArray imgJson = new JSONArray(s);
+                    for (int count =0; count < imgJson.length();count++){
+                        JSONArray imgJson_url = new JSONArray(imgJson.getString(count));
+                        databaseImage.addDataImage(new DataImage(imgJson_url.getString(0),imgJson_url.getString(1),imgJson_url.getInt(2),"null"));
+                        if (count == (imgJson.length() -1)){
+                            context.setCount(context.getCount()+1);
+                            Log.e("count1", String.valueOf(context.getCount()));
+                            context.install();
+                        }
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    public static class Async_imageByte extends AsyncTask<String,Void,String>{
+        private FirstActivity context;
+        private DatabaseImage databaseImage;
+        public Async_imageByte(FirstActivity context) {
+            this.context = context;
+        }
+
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .connectTimeout(20, TimeUnit.SECONDS)
+                .writeTimeout(20, TimeUnit.SECONDS)
+                .readTimeout(20, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+        @Override
+        protected String doInBackground(String... strings) {
+            try {
+                Request request = new Request.Builder()
+                        .url(strings[0])
+                        .build();
+                Response response = okHttpClient.newCall(request).execute();
+
+                return response.body().string();
+            } catch (IOException e) {
+//            e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            if (s == null){
+                context.error();
+            }else{
+                databaseImage = context.getDatabaseImage();
+                try {
+                    JSONArray jsonArray = new JSONArray(s);
+                    for (int i =1;i<=10;i++){
+                        databaseImage.updateIMAGE_BYTE(i,jsonArray.getString(i-1));
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                context.setCount(context.getCount()+1);
+                context.install();
+            }
+        }
+    }
+}
